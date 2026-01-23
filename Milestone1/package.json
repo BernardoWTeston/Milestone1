@@ -1,0 +1,15 @@
+{
+  "name": "campus-resource-reservation-api",
+  "version": "1.0.0",
+  "description": "Backend API for managing campus resource reservations",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["express", "api", "reservation", "campus"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
