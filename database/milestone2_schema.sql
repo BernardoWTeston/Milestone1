@@ -1,7 +1,17 @@
+-- CSC 3210 Application Development I Backend
+-- Project: Campus Resource Reservation API
+-- Milestone 2: Database Schema Design
+-- Database: MySQL
+
+-- If you want to re-run this script safely:
 DROP DATABASE IF EXISTS campus_reservation;
 CREATE DATABASE campus_reservation;
 USE campus_reservation;
 
+-- ---------------------------------------------------
+-- Table: users
+-- Stores people who can log in and make reservations
+-- ---------------------------------------------------
 CREATE TABLE users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
   full_name VARCHAR(100) NOT NULL,
@@ -10,6 +20,10 @@ CREATE TABLE users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ---------------------------------------------------
+-- Table: resources
+-- Stores reservable items such as rooms and equipment
+-- ---------------------------------------------------
 CREATE TABLE resources (
   resource_id INT AUTO_INCREMENT PRIMARY KEY,
   resource_name VARCHAR(120) NOT NULL,
@@ -21,6 +35,10 @@ CREATE TABLE resources (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ---------------------------------------------------
+-- Table: reservations
+-- Stores reservations made by users for resources
+-- ---------------------------------------------------
 CREATE TABLE reservations (
   reservation_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -43,10 +61,15 @@ CREATE TABLE reservations (
     CHECK (end_time > start_time)
 );
 
+-- Helpful indexes for common lookups
 CREATE INDEX idx_reservations_user ON reservations(user_id);
 CREATE INDEX idx_reservations_resource ON reservations(resource_id);
 CREATE INDEX idx_reservations_time ON reservations(start_time, end_time);
 
+-- ---------------------------------------------------
+-- OPTIONAL: Sample data for testing your schema
+-- You may keep or remove this section
+-- ---------------------------------------------------
 INSERT INTO users (full_name, email, role) VALUES
 ('Marcus Rivera', 'marcus.rivera@madonna.edu', 'student'),
 ('Sophia Chen', 'sophia.chen@madonna.edu', 'admin'),
