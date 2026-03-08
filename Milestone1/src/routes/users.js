@@ -1,17 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const validate = require('../middleware/validateRequest');
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const [rows] = await db.query('SELECT * FROM users');
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', validate(['full_name', 'email']), async (req, res, next) => {
   try {
     const { full_name, email, role } = req.body;
 
@@ -22,7 +23,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ user_id: result.insertId });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
