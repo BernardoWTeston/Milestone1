@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const validate = require('../middleware/validateRequest');
+const auth = require('../middleware/authMiddleware');
 
 router.get('/', async (req, res, next) => {
   try {
@@ -12,7 +13,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.post('/', validate(['user_id', 'resource_id', 'start_time', 'end_time']), async (req, res, next) => {
+router.post('/', auth, validate(['user_id', 'resource_id', 'start_time', 'end_time']), async (req, res, next) => {
   try {
     const { user_id, resource_id, start_time, end_time, purpose } = req.body;
 

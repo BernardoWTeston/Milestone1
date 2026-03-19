@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const validate = require('../middleware/validateRequest');
+const auth = require('../middleware/authMiddleware');
+const requireRole = require('../middleware/roleMiddleware');
 
 router.get('/', async (req, res, next) => {
   try {
@@ -12,7 +14,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.post('/', validate(['resource_name', 'resource_type']), async (req, res, next) => {
+router.post('/', auth, requireRole('admin'), validate(['resource_name', 'resource_type']), async (req, res, next) => {
   try {
     const { resource_name, resource_type, location, capacity, description } = req.body;
 
