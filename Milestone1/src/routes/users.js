@@ -16,6 +16,14 @@ router.post('/', validate(['full_name', 'email']), async (req, res, next) => {
   try {
     const { full_name, email, role } = req.body;
 
+    if (!full_name || full_name.trim() === '') {
+      return res.status(400).json({ error: 'full_name is required' });
+    }
+
+    if (!email || email.trim() === '') {
+      return res.status(400).json({ error: 'email is required' });
+    }
+
     const [result] = await db.query(
       'INSERT INTO users (full_name, email, role) VALUES (?, ?, ?)',
       [full_name, email, role || 'student']

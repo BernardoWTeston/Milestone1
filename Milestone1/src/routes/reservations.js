@@ -17,6 +17,14 @@ router.post('/', auth, validate(['user_id', 'resource_id', 'start_time', 'end_ti
   try {
     const { user_id, resource_id, start_time, end_time, purpose } = req.body;
 
+    if (!start_time) {
+      return res.status(400).json({ error: 'start_time is required' });
+    }
+
+    if (!end_time) {
+      return res.status(400).json({ error: 'end_time is required' });
+    }
+
     if (new Date(end_time) <= new Date(start_time)) {
       return res.status(400).json({
         error: 'End time must be after start time'
