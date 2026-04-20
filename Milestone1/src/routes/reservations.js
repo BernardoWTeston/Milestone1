@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { findAll, findById, findWhere } = require('../db/queries');
 const validate = require('../middleware/validateRequest');
 const auth = require('../middleware/authMiddleware');
 
 router.get('/', async (req, res, next) => {
   try {
-    const [rows] = await db.query('SELECT * FROM reservations');
-    res.json(rows);
+    const reservations = await findAll('reservations');
+    res.json(reservations);
   } catch (error) {
     next(error);
   }
@@ -17,50 +18,28 @@ router.post('/', auth, validate(['user_id', 'resource_id', 'start_time', 'end_ti
   try {
     const { user_id, resource_id, start_time, end_time, purpose } = req.body;
 
-    if (!start_time) {
-      return res.status(400).json({ error: 'start_time is required' });
-    }
-
-    if (!end_time) {
-      return res.status(400).json({ error: 'end_time is required' });
-    }
-
     if (new Date(end_time) <= new Date(start_time)) {
-      return res.status(400).json({
-        error: 'End time must be after start time'
-      });
+      return res.status(400).json({ error: 'End time must be after start time' });
     }
 
-    const [resource] = await db.query(
-      'SELECT * FROM resources WHERE resource_id = ?',
-      [resource_id]
-    );
-
-    if (resource.length === 0) {
-      return res.status(404).json({
-        error: 'Cannot reserve a nonexistent resource'
-      });
+    const resource = await findById('resources', 'resource_id', resource_id);
+    if (!resource) {
+      return res.status(404).json({ error: 'Cannot reserve a nonexistent resource' });
     }
 
-    const [duplicate] = await db.query(
-      `SELECT * FROM reservations 
-       WHERE resource_id = ? 
-       AND status = 'active'
-       AND ((start_time <= ? AND end_time > ?) 
-            OR (start_time < ? AND end_time >= ?)
-            OR (start_time >= ? AND end_time <= ?))`,
-      [resource_id, start_time, start_time, end_time, end_time, start_time, end_time]
+    const conflicts = await findWhere(
+      'reservations',
+      `resource_id = ? AND status = 'active'
+       AND start_time < ? AND end_time > ?`,
+      [resource_id, end_time, start_time]
     );
 
-    if (duplicate.length > 0) {
-      return res.status(409).json({
-        error: 'Resource is already reserved for this time period'
-      });
+    if (conflicts.length > 0) {
+      return res.status(409).json({ error: 'Resource is already reserved for this time period' });
     }
 
     const [result] = await db.query(
-      `INSERT INTO reservations (user_id, resource_id, start_time, end_time, purpose)
-       VALUES (?, ?, ?, ?, ?)`,
+      'INSERT INTO reservations (user_id, resource_id, start_time, end_time, purpose) VALUES (?, ?, ?, ?, ?)',
       [user_id, resource_id, start_time, end_time, purpose || null]
     );
 

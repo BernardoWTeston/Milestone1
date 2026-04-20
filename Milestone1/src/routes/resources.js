@@ -1,14 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { findAll } = require('../db/queries');
 const validate = require('../middleware/validateRequest');
 const auth = require('../middleware/authMiddleware');
 const requireRole = require('../middleware/roleMiddleware');
 
 router.get('/', async (req, res, next) => {
   try {
-    const [rows] = await db.query('SELECT * FROM resources');
-    res.json(rows);
+    const resources = await findAll('resources');
+    res.json(resources);
   } catch (error) {
     next(error);
   }
