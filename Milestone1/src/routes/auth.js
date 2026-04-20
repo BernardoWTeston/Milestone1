@@ -3,16 +3,12 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { SECRET_KEY } = require('../config');
+const validate = require('../middleware/validateRequest');
 
-const SECRET_KEY = 'your_secret_key';
-
-router.post('/register', async (req, res, next) => {
+router.post('/register', validate(['full_name', 'email', 'password']), async (req, res, next) => {
   try {
     const { full_name, email, password } = req.body;
-
-    if (!full_name || !email || !password) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -30,13 +26,9 @@ router.post('/register', async (req, res, next) => {
   }
 });
 
-router.post('/login', async (req, res, next) => {
+router.post('/login', validate(['email', 'password']), async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Missing email or password' });
-    }
 
     const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
 
