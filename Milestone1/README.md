@@ -1,81 +1,241 @@
-Campus Resource Reservation API
+# Campus Resource Reservation API
 
-## Project Description
+## Project Overview
 
-This is a backend API system for managing campus resource reservations. The system allows users to reserve campus resources such as study rooms, lab spaces, and equipment through a RESTful API.
+The Campus Resource Reservation API is a RESTful backend system that allows students and staff to discover and reserve campus resources such as study rooms, lab spaces, and equipment. The system supports user registration and authentication, role-based access control, conflict detection for overlapping reservations, and structured error handling throughout.
 
-## Technologies Used
+This project was built as the backend for a course in Application Development, progressing through eight milestones covering database design, CRUD implementation, middleware, authentication, logging, and final integration.
 
-- Node.js - JavaScript runtime environment
-- Express.js - Web application framework
-- MySQL - Relational database management system
-- GitHub - Version control and repository hosting
+---
 
-## How to Run the Server Locally
+## Technology Stack
+
+| Technology | Purpose |
+|------------|---------|
+| Node.js | JavaScript runtime |
+| Express.js | Web application framework |
+| MySQL | Relational database |
+| mysql2 | MySQL driver with Promise support |
+| bcrypt | Password hashing |
+| jsonwebtoken | JWT-based authentication |
+| GitHub | Version control and repository hosting |
+
+---
+
+## Setup Instructions
 
 ### Prerequisites
 
-- Node.js installed on your machine
-- npm (comes with Node.js)
-- MySQL running locally with the `campus_reservation` database
+- Node.js (v18 or later)
+- npm (bundled with Node.js)
+- MySQL (v8 or later) running locally or remotely
 
-### Setup Instructions
+### Steps
 
-1. Clone this repository
-2. Navigate to the project directory
-3. Install dependencies:
+1. Clone the repository:
+   ```bash
+   git clone <your-repo-url>
+   cd Milestone1
+   ```
 
-```bash
-npm install
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env` file based on `.env.example`:
+   ```bash
+   cp .env.example .env
+   ```
+   Then edit `.env` with your actual values (see Environment Variables below).
+
+4. Initialize the database (see Database Initialization Steps below).
+
+5. Start the server:
+   ```bash
+   npm start
+   ```
+
+The server listens on `http://localhost:3000` by default.
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the `Milestone1/` directory with the following variables:
+
+```
+PORT=3000
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_NAME=campus_reservation
+SECRET_KEY=a_long_random_secret_string
 ```
 
-4. Start the server:
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Port the server listens on | `3000` |
+| `DB_HOST` | MySQL host | `localhost` |
+| `DB_USER` | MySQL username | `root` |
+| `DB_PASSWORD` | MySQL password | _(empty)_ |
+| `DB_NAME` | Database name | `campus_reservation` |
+| `SECRET_KEY` | Secret used to sign JWT tokens | `your_secret_key` |
 
-```bash
-npm start
-```
+---
 
-The server will run on `http://localhost:3000` by default. Set the `PORT` environment variable to use a different port.
+## Database Initialization Steps
 
-## API Endpoints
+1. Open a MySQL client and run the main schema file to create the database and tables:
+   ```bash
+   mysql -u root -p < database/milestone2_schema.sql
+   ```
+
+2. Apply the schema migration that adds the password column:
+   ```bash
+   mysql -u root -p < database/milestone5_update.sql
+   ```
+
+3. Verify the setup:
+   ```sql
+   USE campus_reservation;
+   SHOW TABLES;
+   -- Expected: reservations, resources, users
+   ```
+
+**Tables created:**
+
+- `users` — stores registered users with hashed passwords and roles (`user`, `admin`)
+- `resources` — stores campus resources (rooms, labs, equipment) with location and capacity
+- `reservations` — stores time-based reservations linking users to resources, with conflict prevention
+
+---
+
+## Authentication Overview
+
+The API uses **JSON Web Tokens (JWT)** for authentication.
+
+1. Register a user via `POST /auth/register` — passwords are hashed with bcrypt before storage.
+2. Log in via `POST /auth/login` — on success, the server returns a signed JWT valid for 24 hours.
+3. For protected routes, include the token in the `Authorization` header:
+   ```
+   Authorization: Bearer <your_token>
+   ```
+
+**Roles:**
+- `user` (default) — can view resources, create and delete their own reservations
+- `admin` — full access, including creating/updating/deleting resources and managing all users and reservations
+
+---
+
+## API Endpoint Summary
+
+### Auth
 
 | Method | Route | Description | Auth Required |
-|--------|-------|-------------|---------------|
-| POST | /auth/register | Register a new user | No |
-| POST | /auth/login | Login and receive JWT token | No |
-| GET | /api/users | List all users | No |
-| POST | /api/users | Create a new user | No |
-| GET | /api/resources | List all resources | No |
-| POST | /api/resources | Create a new resource | Admin only |
-| GET | /api/reservations | List all reservations | No |
-| POST | /api/reservations | Create a reservation | Yes |
+|--------|-------|-------------|:---:|
+| POST | `/auth/register` | Register a new user | No |
+| POST | `/auth/login` | Login and receive a JWT token | No |
 
-## Refinement and Optimization
+### Users
 
-### What was cleaned up or improved
+| Method | Route | Description | Auth Required |
+|--------|-------|-------------|:---:|
+| GET | `/api/users` | List all users | Yes |
+| GET | `/api/users/:id` | Get a single user by ID | Yes |
+| PUT | `/api/users/:id` | Update a user | Admin |
+| DELETE | `/api/users/:id` | Delete a user | Admin |
 
-**Centralized configuration (`src/config.js`)**
-The JWT secret key was duplicated across `auth.js` and `authMiddleware.js`. It is now defined once in `src/config.js` and imported where needed. This eliminates the risk of the two values going out of sync.
+### Resources
 
-**Reusable database helpers (`src/db/queries.js`)**
-Repeated patterns like `SELECT * FROM table` and `SELECT * FROM table WHERE id = ?` were extracted into `findAll`, `findById`, and `findWhere` helper functions. Route handlers now call these helpers instead of writing raw SQL each time.
+| Method | Route | Description | Auth Required |
+|--------|-------|-------------|:---:|
+| GET | `/api/resources` | List all resources | No |
+| GET | `/api/resources/:id` | Get a single resource by ID | No |
+| POST | `/api/resources` | Create a new resource | Admin |
+| PUT | `/api/resources/:id` | Update a resource | Admin |
+| DELETE | `/api/resources/:id` | Delete a resource | Admin |
 
-**Removed duplicate field validation in routes**
-`users.js` previously validated `full_name` and `email` both via the `validate` middleware and again manually inside the handler. The redundant manual checks were removed — the middleware already guarantees those fields are present before the handler runs.
+### Reservations
 
-**Simplified conflict detection query in reservations**
-The overlap check used a complex three-condition OR expression. It was replaced with the standard interval overlap condition (`start_time < end_time AND end_time > start_time`), which is shorter, correct, and easier to read.
+| Method | Route | Description | Auth Required |
+|--------|-------|-------------|:---:|
+| GET | `/api/reservations` | List all reservations | Yes |
+| GET | `/api/reservations/:id` | Get a single reservation by ID | Yes |
+| POST | `/api/reservations` | Create a reservation | Yes |
+| PATCH | `/api/reservations/:id/status` | Update reservation status | Admin |
+| DELETE | `/api/reservations/:id` | Delete a reservation | Yes (owner or admin) |
 
-**Excluded password from user SELECT**
-`GET /api/users` previously returned the hashed password for every user. The query now selects only `user_id, full_name, email, role`, avoiding unnecessary data exposure.
+---
 
-**Cleaned up `validateRequest.js`**
-Trailing blank lines were removed and the error message format was made consistent with the rest of the API (`"field is required"` instead of `"Missing required field: field"`).
+## How to Run the Project Locally
 
-### Why these changes matter for maintainability
+```bash
+# 1. Clone the repo
+git clone <your-repo-url>
+cd Milestone1
 
-- A single source of truth for configuration means one change propagates everywhere.
-- Shared query helpers mean database interaction patterns only need to be tested and corrected in one place.
-- Removing duplicated validation logic means future changes to validation rules require editing only one location.
-- Cleaner, shorter route handlers are easier to read, review, and debug.
-- Not returning sensitive fields by default reduces security risk without extra effort at call sites.
+# 2. Install dependencies
+npm install
+
+# 3. Set up environment
+cp .env.example .env
+# Edit .env with your MySQL credentials and a secret key
+
+# 4. Set up the database
+mysql -u root -p < database/milestone2_schema.sql
+mysql -u root -p < database/milestone5_update.sql
+
+# 5. Start the server
+npm start
+# Server runs at http://localhost:3000
+```
+
+### Quick test after startup
+
+```bash
+# Register a user
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"full_name": "Jane Doe", "email": "jane@example.com", "password": "secret"}'
+
+# Login
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "jane@example.com", "password": "secret"}'
+
+# List resources (no auth needed)
+curl http://localhost:3000/api/resources
+```
+
+---
+
+## Project Structure
+
+```
+Milestone1/
+├── src/
+│   ├── app.js              # Express app setup and middleware registration
+│   ├── server.js           # Server entry point
+│   ├── config.js           # Centralized configuration (SECRET_KEY)
+│   ├── db.js               # MySQL connection pool
+│   ├── db/
+│   │   └── queries.js      # Reusable database helpers (findAll, findById, findWhere)
+│   ├── routes/
+│   │   ├── auth.js         # Registration and login
+│   │   ├── users.js        # User CRUD
+│   │   ├── resources.js    # Resource CRUD
+│   │   └── reservations.js # Reservation CRUD with conflict detection
+│   └── middleware/
+│       ├── authMiddleware.js    # JWT verification
+│       ├── roleMiddleware.js    # Role-based access control
+│       ├── validateRequest.js   # Required field validation
+│       ├── errorHandler.js      # Centralized error responses
+│       └── requestLogger.js     # HTTP request logging
+├── database/
+│   ├── milestone2_schema.sql    # Full database schema with sample data
+│   └── milestone5_update.sql    # Migration: adds password column
+├── .env.example            # Template for environment variables
+├── package.json
+└── README.md
+```
