@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
 const db = require('../db');
 const { findAll, findById } = require('../db/queries');
-const validate = require('../middleware/validateRequest');
 const auth = require('../middleware/authMiddleware');
 const requireRole = require('../middleware/roleMiddleware');
 
